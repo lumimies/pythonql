@@ -4,11 +4,11 @@ from pythonql.Rewriter import rewrite
 import json
 import types
 
-def make_pql_tuple(vals,lcs):
+def make_pql_tuple(vals,lcs,gbs):
   t = []
   als = []
   for v in vals:
-    t.append(eval(v[0],lcs,globals()))
+    t.append(eval(v[0],lcs,gbs))
     alias = v[1] if v[1] else v[0]
     als.append(alias)
 

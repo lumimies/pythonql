@@ -210,7 +210,7 @@ def get_tuple_constructor_terminals(tree):
         alias = mk_tok([getTermsEsc(e.children[2])])
         res.append(mk_tok(["(",value,",",alias,")"]))
     res = reduce(lambda x,y: x + mk_tok([","]) + y, res)
-    return mk_tok(["make_pql_tuple","(", "[",res,"]",",","locals","(",")",")"])
+    return mk_tok(["make_pql_tuple","(", "[",res,"]",",","locals","(",")",",", "globals","(",")", ")"])
 
 # Process the select clause
 def process_select_clause(tree):
