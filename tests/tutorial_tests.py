@@ -1,5 +1,8 @@
 #coding: pythonql
 
+def fstr_test():
+
+  assert f"Woot{1 + 3}" == "Woot4"
 def q1_test():
   res = [ (x,y)
             for x in range(1,8)

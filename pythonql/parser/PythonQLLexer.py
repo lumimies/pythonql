@@ -69,6 +69,8 @@ class Lexer:
     'DEDENT',
     'STRING_LITERAL',
     'LONG_STRING_LITERAL',
+    'FSTRING_LITERAL',
+    'LONG_FSTRING_LITERAL',
     'NAME',
     'FLOAT_NUMBER',
     'DECIMAL_INTEGER',
@@ -173,9 +175,55 @@ class Lexer:
     t.lexer.lexpos = pos
     t.value = data[t.lexpos:pos]
     return t
+  def t_LONG_FSTRING_LITERAL(self,t):
+    r'([fF])("""|\'\'\')'
+    pos = t.lexer.lexpos
+    data = t.lexer.lexdata
+    start_sym = data[t.lexer.lexpos-1]
 
+    content_len = 0
+    while True:
+      if pos >= len(data):
+        raise Exception("Unterminated string at line %d" % t.lexer.lineno)
+
+      if data[pos] == start_sym:
+        if content_len >= 2:
+          if data[pos-1] == data[pos-2] == start_sym:
+            break
+
+      pos += 1
+      content_len += 1
+
+    pos += 1
+    t.lexer.lexpos = pos
+    t.value = data[t.lexpos:pos]
+    return t
   # Some hairy business with backslash handling in single quote strings
+  def t_FSTRING_LITERAL(self,t):
+    r'([fF])("|\')'
+    pos = t.lexer.lexpos
+    data = t.lexer.lexdata
+    start_sym = data[t.lexer.lexpos-1]
+    prev_slash = False
 
+    while True:
+      if pos >= len(data) or data[pos] == '\n':
+        raise Exception("Unterminated string at line %d" % t.lexer.lineno)
+
+      if data[pos] == start_sym and not prev_slash:
+        break
+
+      if data[pos] == '\\':
+        prev_slash = not prev_slash
+      else: 
+        prev_slash = False
+
+      pos += 1
+
+    pos += 1
+    t.lexer.lexpos = pos
+    t.value = data[t.lexpos:pos]
+    return t
   def t_STRING_LITERAL(self,t):
     r'([bB][rR]?|[uU]?[rR]?)("|\')'
     pos = t.lexer.lexpos

@@ -49,6 +49,8 @@ def isTupleConstructor(tree):
           return True
 
     return False
+def isFString(tree):
+  return isinstance(tree, Node) and tree.label == 'fstring'
 
 def moreThanPythonComprehension(tree):
   select_cl = tree.children[0]
@@ -150,6 +152,25 @@ def mk_tok(items):
     else:
         return [PQLexerToken('PQL',items,-1,-1)]
 
+def get_fstring_terminals(tree):
+  format_str = ''
+  exps = []
+  ix = 0
+  for child in tree.children:
+    if child.label == str('formattedvalue'):
+      exp, spec, conv = child.children
+      exps.extend(get_all_terminals(exp))
+      exps.append(',')
+      format_str += '{'+str(ix)
+      if spec:
+        format_str += ':' + spec
+      if conv:
+        format_str += '!' + conv
+      format_str += '}'
+    else:
+      format_str += getText(child)
+
+  return mk_tok(['"' + str_encode(format_str) + '"', '.', 'format', '(', *exps, ')'])
 # Convert path expressions to Python
 def get_path_expression_terminals(tree):
     baseExpr = tree.children[0]
@@ -449,6 +470,8 @@ def get_all_terminals(tree):
         return get_tuple_constructor_terminals(tree)
     elif isQuery(tree):
         return get_query_terminals(tree)
+    elif isFString(tree):
+      return get_fstring_terminals(tree)
     else:
         children = []
         if tree.children:

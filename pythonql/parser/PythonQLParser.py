@@ -1,5 +1,5 @@
 import ply.yacc as yacc
-from pythonql.parser.PythonQLLexer import Lexer
+from pythonql.parser.PythonQLLexer import Lexer, PQLexerToken
 
 # This function prints out propertly indented program
 # based only on the leaf tokens
@@ -100,7 +100,7 @@ class Parser:
     self.parser = yacc.yacc(module=self,start='file_input',tabmodule='pythonql.parser.parsertab',debug=True)
 
   def parse(self,text):
-    return self.parser.parse(text)
+    return self.parser.parse(text,self.lex.lexer)
 
   # Precedence rules
   precedence = (
@@ -240,6 +240,7 @@ class Parser:
   def p_expr_stmt(self, p):
     """expr_stmt : testlist_star_expr augassign yield_expr
                 | testlist_star_expr augassign test_list_comma_opt
+                | testlist_star_expr annassign
                 | testlist_star_expr assign_list"""
     p[0] = make_node('expr_stmt', p)
 
@@ -270,6 +271,14 @@ class Parser:
                  | MOD_ASSIGN
                  | IDIV_ASSIGN"""
     p[0] = make_node('augassign', p)
+  def p_annassign(self, p):
+    """annassign : ':' test annassign_opt"""
+    p[0] = make_node('annassign', p)
+
+  def p_annassign_opt(self, p):
+    """annassign_opt : '=' test
+                     | """
+    p[0] = make_node('annassign_opt', p)
 
   def p_assign_list(self, p):
     """assign_list : '=' yield_expr
@@ -614,8 +623,31 @@ class Parser:
                         | """
     p[0] = make_list('trailer_list_opt', p)
 
+  def p_fstring(self, p):
+    """fstring : LONG_FSTRING_LITERAL
+               | FSTRING_LITERAL"""
+    import string
+    f = string.Formatter()
+    out = []
+    t = p[1] if isinstance(p[1], str) else p[1].value
+    t = t[2:-1]
+    lex = Lexer()
+    lex.build()
+    myparser = yacc.yacc(module=self,start='expr',tabmodule='pythonql.parser.parsertab2',debug=True)
+    for text, exp, spec, conv in f.parse(t):
+      if text:
+        out.append(Node('string', [PQLexerToken('STRING', text, p.lineno(1), p.lexpos(1))]))
+      if exp:
+        try:
+          out.append(Node('formattedvalue', [myparser.parse(exp, lexer=lex.lexer), spec, conv]))
+        except Exception as e:
+          raise Exception("While parsing " + repr(exp)) from e
+    p[0] = Node('fstring', out)
+    
+
   def p_atom(self, p):
-    """atom : NAME
+    """atom : fstring
+            | NAME
             | number
             | string_list
             | ELLIPSIS
