@@ -140,6 +140,7 @@ class Parser:
 
   def p_args_opt(self,p):
     """args_opt : '(' arg_list ')'
+                | '(' ')'
                 | """
     p[0] = make_node('args_opt', p)
 
